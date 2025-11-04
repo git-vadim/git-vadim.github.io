@@ -1,0 +1,22 @@
+.tie {
+    background-color: orange;
+    color: white;
+    padding: 0px 2px;
+}
+
+.win {
+    background-color: green;
+    color: white;
+    padding: 0px 2px;
+}
+
+.lose {
+    background-color: red;
+    color: white;
+    padding: 0px 2px;
+}
+
+td.highlight,
+tr.highlight {
+    background-color: yellow !important;
+}

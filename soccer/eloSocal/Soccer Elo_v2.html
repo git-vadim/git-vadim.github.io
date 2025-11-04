@@ -1,0 +1,655 @@
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" />
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
+<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+
+	
+	<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/dataTables.buttons.min.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.flash.min.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/pdfmake.min.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/vfs_fonts.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.html5.min.js"></script>
+	<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.print.min.js"></script>
+
+	
+<script>
+
+var bUseScores = false;
+var bDecimal = 0;
+// https://resources.fifa.com/image/upload/revision-of-the-fifa-coca-cola-world-ranking.pdf?cloudid=iklxmt2jejtjwf8qecba
+var kFactor = 25;
+var chanceWinDivider = 600;
+
+// Opponents/choices for the battles
+var arrTeams = [];
+var dataSet =  [];
+
+
+// https://resources.fifa.com/image/upload/revision-of-the-fifa-coca-cola-world-ranking.pdf?cloudid=iklxmt2jejtjwf8qecba
+// https://github.com/moroshko/elo.js/blob/master/elo.js
+// https://fivethirtyeight.com/features/introducing-nfl-elo-ratings/ 
+
+window.Elo = (function() {
+  function getRatingDelta(myRating, opponentRating, myGameResult, p_goalMultiplier) {
+    if ([0, 0.5, 1].indexOf(myGameResult) === -1) {
+      return null;
+    }
+    var multiplier = p_goalMultiplier || 1;
+	
+    return kFactor * multiplier * (myGameResult - getChanceToWin(myRating, opponentRating));
+  }
+
+  function getChanceToWin(myRating, opponentRating) {
+    return 1 / ( 1 + Math.pow(10, (opponentRating - myRating) / chanceWinDivider ));
+  }
+  
+  function getNewRating(myRating, opponentRating, myGameResult, p_goalMultiplier) {
+    return myRating + getRatingDelta(myRating, opponentRating, myGameResult, p_goalMultiplier);
+  }
+
+  return {
+    getRatingDelta: getRatingDelta,
+    getNewRating: getNewRating,
+	getChanceToWin: getChanceToWin
+  };
+})();
+
+/****************************************
+*****************************************
+*
+* Implementation
+*
+****************************************
+*****************************************/
+
+var left = null;
+var right = null;
+
+var iName = 1;
+var iScore = 2;
+var iBattles = 3;
+var iWin = 4;
+var iLose = 5;
+var iTie = 6;
+var iGoalFor = 7;
+var iGoalAgainst = 8;
+
+var iOpWin = 9;
+var iOpLose = 10;
+var iOpponents = 11;
+var iChange = 12;
+
+var iPoints = 13;
+
+var iOpScore = 14;
+
+var iGoalDiff = 15;
+
+
+function myRound(p_num)
+{
+	var decimalCreator = Math.pow(10, bDecimal);
+	return Math.round(p_num * decimalCreator) / decimalCreator;
+}
+
+function updateRatings(p_result, p_skipUpdatingTable, p_goalMultiplier)
+{
+	//reset all deltas
+	for(var i= 0; i < dataSet.length; i++)
+	{
+		// dataSet[i][iChange] = null;
+	}
+	
+	// delta
+	dataSet[left][iChange] = myRound( Elo.getRatingDelta( dataSet[left][iScore], dataSet[right][iScore], 1 - p_result, p_goalMultiplier) );
+	dataSet[right][iChange] = myRound( Elo.getRatingDelta( dataSet[right][iScore], dataSet[left][iScore], p_result, p_goalMultiplier) );
+
+	// new score 
+	dataSet[left][iScore] = myRound( Elo.getNewRating( dataSet[left][iScore], dataSet[right][iScore], 1 - p_result, p_goalMultiplier) );
+	dataSet[right][iScore] = myRound( Elo.getNewRating( dataSet[right][iScore], dataSet[left][iScore], p_result, p_goalMultiplier) );
+
+	// battles
+	dataSet[left][iBattles] =  ( dataSet[left][iBattles] || 0) + 1 
+	dataSet[right][iBattles] = ( dataSet[right][iBattles] || 0) + 1;
+	
+	// left win 
+	if( p_result == 0)
+	{
+		dataSet[left][iPoints] = dataSet[left][iPoints] + 3;
+
+		dataSet[left][iWin] =  ( dataSet[left][iWin] || 0) + 1 
+		dataSet[right][iLose] = ( dataSet[right][iLose] || 0) + 1;
+	}
+	// left lose
+	else if( p_result == 1)
+	{
+		dataSet[right][iPoints] = dataSet[right][iPoints] + 3;
+		
+		dataSet[right][iWin] =  ( dataSet[right][iWin] || 0) + 1 
+		dataSet[left][iLose] = ( dataSet[left][iLose] || 0) + 1;
+	}
+	// tie
+	else
+	{
+		dataSet[left][iPoints] = dataSet[left][iPoints] + 1;
+		dataSet[right][iPoints] = dataSet[right][iPoints] + 1;
+		
+		dataSet[left][iTie] =  ( dataSet[left][iTie] || 0) + 1 
+		dataSet[right][iTie] = ( dataSet[right][iTie] || 0) + 1;
+	}
+	
+	if(p_skipUpdatingTable)
+	{
+	
+	}
+	else
+	{
+		updateTable();
+		loadButtons();
+	}	
+}
+
+function updateTable()
+{
+	// clear it
+	oTable.clear();
+	
+	// set data
+	oTable.rows.add( dataSet );
+	
+	// redraw
+	oTable.draw();
+}
+
+function addTeam(p_strTeamName)
+{
+	dataSet = dataSet || [];
+	arrTeams  = arrTeams || [];
+	
+	dataSet.push( [ 0,  p_strTeamName, 1000, null, null, null, null, 0, 0, 0, 0, [], null, 0, 0, 0 ])
+	arrTeams.push(p_strTeamName);
+}
+
+
+function recordGame(leftTeam, rightTeam, result, leftScore, rightScore)
+{
+	right = arrTeams.indexOf(leftTeam);
+
+	if(right < 0)
+	{
+		addTeam(leftTeam);
+		right = arrTeams.indexOf(leftTeam);
+	}
+
+	left = arrTeams.indexOf(rightTeam);
+	if(left < 0)
+	{
+		addTeam(rightTeam);
+		left = arrTeams.indexOf(rightTeam);
+	}
+	
+	dataSet[left][iOpponents].push(right);
+	dataSet[right][iOpponents].push(left);
+	
+	var winnerRating = (leftScore > rightScore) ?  dataSet[arrTeams.indexOf(leftTeam)][iScore] :  dataSet[arrTeams.indexOf(rightTeam)][iScore];
+	var loserRating =  (rightScore > leftScore) ?  dataSet[arrTeams.indexOf(rightTeam)][iScore] :  dataSet[arrTeams.indexOf(leftTeam)][iScore];
+	
+	var goalMultiplier = 1; 
+	
+	if(bUseScores)
+	{
+		// https://fivethirtyeight.com/features/introducing-nfl-elo-ratings/
+		
+		goalMultiplier = Math.min( 1, Math.log(Math.abs( leftScore - rightScore )+1) * (2.2/((winnerRating-loserRating)*0.001+2.2)) );
+	}
+	
+	updateRatings(result, true, goalMultiplier);
+	
+	dataSet[left][iGoalAgainst] =  ( dataSet[left][iGoalAgainst] || 0) + leftScore;
+	dataSet[left][iGoalFor] =  ( dataSet[left][iGoalFor] || 0) + rightScore;
+	dataSet[left][iGoalDiff] =  dataSet[left][iGoalFor] - dataSet[left][iGoalAgainst];
+	dataSet[left][iGoalDiff] = ( dataSet[left][iGoalDiff] > 0) ? "+" + dataSet[left][iGoalDiff] : dataSet[left][iGoalDiff];
+	
+	dataSet[right][iGoalAgainst] =  ( dataSet[right][iGoalAgainst] || 0) + rightScore;
+	dataSet[right][iGoalFor] =  ( dataSet[right][iGoalFor] || 0) + leftScore;
+	dataSet[right][iGoalDiff] =  dataSet[right][iGoalFor] - dataSet[right][iGoalAgainst];
+	dataSet[right][iGoalDiff] = ( dataSet[right][iGoalDiff] > 0) ? "+" + dataSet[right][iGoalDiff] : dataSet[right][iGoalDiff];
+}
+
+function updateOpponentWinLoss()
+{
+	// go through each team
+	for(var i=0; i < dataSet.length; i++)
+	{
+		// touch each opponent
+		for (var j=0; j< dataSet[i][iOpponents].length; j++)
+		{
+			// and accumulate the wins and losses
+			dataSet[i][iOpWin] += dataSet[dataSet[i][iOpponents][j]][iWin];
+			dataSet[i][iOpLose] += dataSet[dataSet[i][iOpponents][j]][iLose];
+			
+			dataSet[i][iOpScore] += dataSet[ dataSet[i][iOpponents][j] ][iScore];
+		}
+	
+		// subtract MY wins and losses from opponent
+		dataSet[i][iOpWin] -= dataSet[i][iWin];
+		dataSet[i][iOpLose] -= dataSet[i][iLose];
+	
+		dataSet[i][iOpScore] = myRound( dataSet[i][iOpScore] / dataSet[i][iBattles] );
+		
+	}
+	
+}
+
+
+
+/****************************************
+*****************************************
+*
+* Starter function starts it all 
+*
+****************************************
+*****************************************/
+
+var oTable = null;
+
+$(document).ready(function() {
+
+	// createDataSet( arrTeams );
+
+    oTable = $('#example').DataTable( {
+          "order": [
+					  [ 6, "desc" ]
+					, [ 7, "desc" ]
+					]
+		, dom: 'Bfrtip'
+		, buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+		, "data": dataSet
+		, "displayLength": 25
+        , "columns": [
+
+				// basic labels
+			  { title: "Index", className: "dt-body-right dt-head-right" }
+			, { title: "Team", className: "dt-body-left dt-head-left dt-nowrap", data: iName }
+            
+				// straight-up stats
+		    , { title: "Matches" , className: "dt-body-center dt-head-center", data: iBattles }
+			, { title: "Win", className: "dt-body-center dt-head-center", data: iWin  }
+            , { title: "Loss", className: "dt-body-center dt-head-center", data: iLose }
+			, { title: "Tie", className: "dt-body-center dt-head-center", data: iTie }
+			
+				// calculated points
+			, { title: "Points", className: "dt-body-center dt-head-center", data: iPoints }
+            , { title: "Rating", className: "dt-body-right dt-head-right", data: iScore }
+			// , { title: "Change", className: "dt-body-center dt-head-center", data: iChange }
+			
+				// goals scored/allowed
+			, { title: "GF", className: "dt-body-right dt-head-right", data: iGoalFor }
+            , { title: "GA", className: "dt-body-right dt-head-right", data:iGoalAgainst  }
+            , { title: "GD", className: "dt-body-right dt-head-right", data:iGoalDiff  }
+			
+				// team's opponents strength/performance
+			, { title: "OpRating", className: "dt-body-right dt-head-right", data: iOpScore }
+            , { title: "OpWins", className: "dt-body-right dt-head-right", data: iOpWin }
+            , { title: "OpLoses", className: "dt-body-right dt-head-right", data: iOpLose }
+        ]
+    } );
+	
+	oTable.on( 'order.dt search.dt', function () {
+        oTable.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = (i+1) ;
+        } );
+    } ).draw();
+	
+	// let's capture each game in the database
+	
+	//recordGames10u2018();
+	recordGames12u2018();
+	//recordGames10uG2018();
+	
+	// let's add up opponent win/loss
+	updateOpponentWinLoss()
+
+	// final call to redraw table
+	updateTable();
+
+} );
+
+</script>
+
+</head>
+
+
+
+<body>
+<center><h2>AYSO58 2018 10UB</h2></center>
+<table id="example" class="display" width="95%" ></table>
+
+<script>
+
+function recordGames12u2018()
+{
+	recordGame("12UB-10 MASON", "12UB-12 ZIMMERMAN", 0, 4, 5);
+	recordGame("12UB-11 KUO", "12UB-16 ARELLANO", 1, 5, 1);
+	recordGame("12UB-14 CHRISMAN", "12UB-05 RUCKMAN", 0, 2, 4);
+	recordGame("12UB-07 SCHLAIFER", "12UB-01 RON", 0, 0, 2);
+	recordGame("12UB-03 HAIGH", "12UB-08 MEYER", 1, 3, 2);
+	recordGame("12UB-04 MENKE", "12UB-13 CHILDERS", 0.5, 3, 3);
+	recordGame("12UB-09 SPILLANE", "12UB-06 AMARI", 1, 2, 0);
+	recordGame("12UB-15 CABRERA", "12UB-02 BERNSTEIN", 0.5, 3, 3);
+	recordGame("12UB-02 BERNSTEIN", "12UB-07 SCHLAIFER", 1, 6, 0);
+	recordGame("12UB-05 RUCKMAN", "12UB-11 KUO", 1, 3, 1);
+	recordGame("12UB-01 RON", "12UB-09 SPILLANE", 1, 4, 3);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-15 CABRERA", 1, 3, 2);
+	recordGame("12UB-06 AMARI", "12UB-04 MENKE", 1, 3, 1);
+	recordGame("12UB-08 MEYER", "12UB-10 MASON", 0, 0, 6);
+	recordGame("12UB-13 CHILDERS", "12UB-14 CHRISMAN", 0, 1, 2);
+	recordGame("12UB-16 ARELLANO", "12UB-03 HAIGH", 0, 0, 4);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-08 MEYER", 0.5, 2, 2);
+	recordGame("12UB-03 HAIGH", "12UB-05 RUCKMAN", 0, 0, 3);
+	recordGame("12UB-15 CABRERA", "12UB-07 SCHLAIFER", 1, 2, 1);
+	recordGame("12UB-14 CHRISMAN", "12UB-06 AMARI", 1, 5, 1);
+	recordGame("12UB-10 MASON", "12UB-16 ARELLANO", 0.5, 3, 3);
+	recordGame("12UB-04 MENKE", "12UB-01 RON", 1, 7, 3);
+	recordGame("12UB-09 SPILLANE", "12UB-02 BERNSTEIN", 1, 5, 1);
+	recordGame("12UB-11 KUO", "12UB-13 CHILDERS", 1, 1, 0);
+	recordGame("12UB-01 RON", "12UB-14 CHRISMAN", 1, 4, 3);
+	recordGame("12UB-02 BERNSTEIN", "12UB-04 MENKE", 0, 1, 6);
+	recordGame("12UB-16 ARELLANO", "12UB-12 ZIMMERMAN", 0.5, 2, 2);
+	recordGame("12UB-13 CHILDERS", "12UB-03 HAIGH", 0, 1, 3);
+	recordGame("12UB-05 RUCKMAN", "12UB-10 MASON", 0, 0, 1);
+	recordGame("12UB-06 AMARI", "12UB-11 KUO", 1, 1, 0);
+	recordGame("12UB-08 MEYER", "12UB-15 CABRERA", 1, 2, 0);
+	recordGame("12UB-07 SCHLAIFER", "12UB-09 SPILLANE", 0, 0, 6);
+	recordGame("12UB-15 CABRERA", "12UB-09 SPILLANE", 0, 3, 4);
+	recordGame("12UB-11 KUO", "12UB-01 RON", 1, 3, 2);
+	recordGame("12UB-04 MENKE", "12UB-07 SCHLAIFER", 1, 7, 1);
+	recordGame("12UB-14 CHRISMAN", "12UB-02 BERNSTEIN", 1, 4, 1);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-05 RUCKMAN", 0, 2, 6);
+	recordGame("12UB-03 HAIGH", "12UB-06 AMARI", 0.5, 2, 2);
+	recordGame("12UB-10 MASON", "12UB-13 CHILDERS", 1, 5, 2);
+	recordGame("12UB-08 MEYER", "12UB-16 ARELLANO", 1, 2, 1);
+	recordGame("12UB-01 RON", "12UB-03 HAIGH", 0.5, 2, 2);
+	recordGame("12UB-16 ARELLANO", "12UB-15 CABRERA", 1, 5, 2);
+	recordGame("12UB-09 SPILLANE", "12UB-04 MENKE", 0, 4, 5);
+	recordGame("12UB-06 AMARI", "12UB-10 MASON", 0, 0, 1);
+	recordGame("12UB-13 CHILDERS", "12UB-12 ZIMMERMAN", 1, 4, 3);
+	recordGame("12UB-07 SCHLAIFER", "12UB-14 CHRISMAN", 0, 1, 4);
+	recordGame("12UB-05 RUCKMAN", "12UB-08 MEYER", 1, 6, 0);
+	recordGame("12UB-02 BERNSTEIN", "12UB-11 KUO", 0.5, 3, 3);
+	recordGame("12UB-08 MEYER", "12UB-13 CHILDERS", 1, 3, 0);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-06 AMARI", 0, 1, 3);
+	recordGame("12UB-14 CHRISMAN", "12UB-09 SPILLANE", 1, 3, 1);
+	recordGame("12UB-15 CABRERA", "12UB-04 MENKE", 1, 4, 3);
+	recordGame("12UB-16 ARELLANO", "12UB-05 RUCKMAN", 0, 2, 3);
+	recordGame("12UB-03 HAIGH", "12UB-02 BERNSTEIN", 1, 2, 1);
+	recordGame("12UB-10 MASON", "12UB-01 RON", 1, 5, 1);
+	recordGame("12UB-11 KUO", "12UB-07 SCHLAIFER", 0.5, 0, 0);
+	recordGame("12UB-09 SPILLANE", "12UB-11 KUO", 0, 1, 2);
+	recordGame("12UB-13 CHILDERS", "12UB-16 ARELLANO", 1, 2, 0);
+	recordGame("12UB-06 AMARI", "12UB-08 MEYER", 1, 2, 1);
+	recordGame("12UB-07 SCHLAIFER", "12UB-03 HAIGH", 1, 1, 0);
+	recordGame("12UB-01 RON", "12UB-12 ZIMMERMAN", 1, 6, 3);
+	recordGame("12UB-02 BERNSTEIN", "12UB-10 MASON", 0, 2, 4);
+	recordGame("12UB-04 MENKE", "12UB-14 CHRISMAN", 0, 3, 4);
+	recordGame("12UB-05 RUCKMAN", "12UB-15 CABRERA", 1, 6, 3);
+	recordGame("12UB-10 MASON", "12UB-07 SCHLAIFER", 1, 2, 1);
+	recordGame("12UB-03 HAIGH", "12UB-09 SPILLANE", 0, 1, 3);
+	recordGame("12UB-16 ARELLANO", "12UB-06 AMARI", 0, 2, 4);
+	recordGame("12UB-05 RUCKMAN", "12UB-13 CHILDERS", 0.5, 3, 3);
+	recordGame("12UB-11 KUO", "12UB-04 MENKE", 0, 0, 1);
+	recordGame("12UB-15 CABRERA", "12UB-14 CHRISMAN", 0, 1, 7);
+	recordGame("12UB-08 MEYER", "12UB-01 RON", 0, 1, 9);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-02 BERNSTEIN", 0, 0, 2);
+	recordGame("12UB-05 RUCKMAN", "12UB-01 RON", 0.5, 1, 1);
+	recordGame("12UB-13 CHILDERS", "12UB-06 AMARI", 0.5, 0, 0);
+	recordGame("12UB-10 MASON", "12UB-04 MENKE", 1, 4, 0);
+	recordGame("12UB-12 ZIMMERMAN", "12UB-09 SPILLANE", 0, 0, 4);
+	recordGame("12UB-16 ARELLANO", "12UB-02 BERNSTEIN", 1, 5, 1);
+	recordGame("12UB-08 MEYER", "12UB-07 SCHLAIFER", 1, 2, 1);
+	recordGame("12UB-15 CABRERA", "12UB-11 KUO", 0, 1, 8);
+	recordGame("12UB-03 HAIGH", "12UB-14 CHRISMAN", 0.5, 2, 2);
+
+	// Playoffs
+	recordGame("12UB-14 CHRISMAN", "12UB-06 AMARI", 0, 2, 3);
+	recordGame("12UB-05 RUCKMAN", "12UB-01 RON", 1, 3, 1);
+	recordGame("12UB-10 MASON", "12UB-04 MENKE", 0, 1, 2);
+	recordGame("12UB-09 SPILLANE", "12UB-11 KUO", 1, 1, 0);
+
+
+	recordGame("12UB-04 MENKE", "12UB-09 SPILLANE", 1, 4, 3);
+	recordGame("12UB-05 RUCKMAN", "12UB-06 AMARI", 1, 1, 0);
+
+	recordGame("12UB-05 RUCKMAN", "12UB-04 MENKE", 1, 4, 0);
+
+
+}
+
+function recordGames10u2018()
+{
+	recordGame("10UB-10 CAHAN", "10UB-16 WILLIAMS", 0, 1, 7);
+	recordGame("10UB-17 MONTERO", "10UB-13 GUERRERO", 0, 2, 4);
+	recordGame("10UB-06 HYTOWITZ", "10UB-18 TIMSIT", 1, 8, 0);
+	recordGame("10UB-15 TEAGUE", "10UB-20 BECKER", 1, 3, 1);
+	recordGame("10UB-21 TLUSH", "10UB-04 KATZ", 1, 4, 3);
+	recordGame("10UB-05 SLAVETT", "10UB-22 JOHNSON", 1, 2, 1);
+	recordGame("10UB-12 DEMARS", "10UB-03 GRUSHCOW", 0, 1, 6);
+	recordGame("10UB-07 SHOKRIAN", "10UB-01 TASBIHGOO", 0, 2, 10);
+	recordGame("10UB-14 IGNATOVSKY", "10UB-02 PAULEY", 0, 1, 3);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-11 THUNE", 1, 15, 1);
+	recordGame("10UB-19 FRANK", "10UB-09 BOTTARINI", 0, 5, 6);
+	
+	recordGame("10UB-11 THUNE", "10UB-17 MONTERO", 1, 4, 2);
+	recordGame("10UB-22 JOHNSON", "10UB-10 CAHAN", 1, 5, 4);
+	recordGame("10UB-04 KATZ", "10UB-06 HYTOWITZ", 0, 3, 6);
+	recordGame("10UB-13 GUERRERO", "10UB-19 FRANK", 1, 8, 5);
+	recordGame("10UB-03 GRUSHCOW", "10UB-15 TEAGUE", 0, 1, 4);
+	recordGame("10UB-09 BOTTARINI", "10UB-12 DEMARS", 1, 3, 1);
+	recordGame("10UB-18 TIMSIT", "10UB-14 IGNATOVSKY", 0, 2, 3);
+	recordGame("10UB-02 PAULEY", "10UB-07 SHOKRIAN", 0, 1, 7);
+	recordGame("10UB-16 WILLIAMS", "10UB-21 TLUSH", 1, 5, 0);
+	recordGame("10UB-20 BECKER", "10UB-05 SLAVETT", 0, 0, 5);
+	recordGame("10UB-01 TASBIHGOO", "10UB-08 PFORZHEIMER", 0.5, 2, 2);
+	
+	recordGame("10UB-10 CAHAN", "10UB-20 BECKER", 0, 1, 3);
+	recordGame("10UB-12 DEMARS", "10UB-13 GUERRERO", 0, 3, 9);
+	recordGame("10UB-21 TLUSH", "10UB-22 JOHNSON", 1, 6, 2);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-02 PAULEY", 1, 4, 2);
+	recordGame("10UB-19 FRANK", "10UB-11 THUNE", 1, 8, 3);
+	recordGame("10UB-15 TEAGUE", "10UB-05 SLAVETT", 0, 2, 5);
+	recordGame("10UB-07 SHOKRIAN", "10UB-18 TIMSIT", 1, 10, 3);
+	recordGame("10UB-14 IGNATOVSKY", "10UB-04 KATZ", 0, 4, 9);
+	recordGame("10UB-06 HYTOWITZ", "10UB-16 WILLIAMS", 0, 1, 7);
+	recordGame("10UB-03 GRUSHCOW", "10UB-09 BOTTARINI", 1, 7, 3);
+	recordGame("10UB-17 MONTERO", "10UB-01 TASBIHGOO", 0, 1, 6);
+	
+	recordGame("10UB-13 GUERRERO", "10UB-03 GRUSHCOW", 1, 3, 2);
+	recordGame("10UB-20 BECKER", "10UB-21 TLUSH", 0, 4, 5);
+	recordGame("10UB-11 THUNE", "10UB-12 DEMARS", 0.5, 3, 3);
+	recordGame("10UB-22 JOHNSON", "10UB-06 HYTOWITZ", 0, 0, 4);
+	recordGame("10UB-01 TASBIHGOO", "10UB-19 FRANK", 1, 5, 4);
+	recordGame("10UB-16 WILLIAMS", "10UB-14 IGNATOVSKY", 1, 3, 1);
+	recordGame("10UB-02 PAULEY", "10UB-17 MONTERO", 1, 2, 1);
+	recordGame("10UB-04 KATZ", "10UB-07 SHOKRIAN", 0, 2, 6);
+	recordGame("10UB-18 TIMSIT", "10UB-08 PFORZHEIMER", 0, 1, 6);
+	recordGame("10UB-05 SLAVETT", "10UB-10 CAHAN", 1, 5, 1);
+	recordGame("10UB-09 BOTTARINI", "10UB-15 TEAGUE", 0, 4, 5);
+
+	//10-6-18
+
+	recordGame("10UB-21 TLUSH", "10UB-05 SLAVETT", 0, 0, 6);
+	recordGame("10UB-03 GRUSHCOW", "10UB-11 THUNE", 1, 5, 1);
+	recordGame("10UB-06 HYTOWITZ", "10UB-20 BECKER", 1, 5, 4);
+	recordGame("10UB-12 DEMARS", "10UB-01 TASBIHGOO", 0, 5, 6);
+	recordGame("10UB-14 IGNATOVSKY", "10UB-22 JOHNSON", 0.5, 1, 1);
+	recordGame("10UB-19 FRANK", "10UB-02 PAULEY", 1, 7, 1);
+	recordGame("10UB-07 SHOKRIAN", "10UB-16 WILLIAMS", 0, 2, 8);
+	recordGame("10UB-17 MONTERO", "10UB-18 TIMSIT", 0, 2, 3);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-04 KATZ", 1, 9, 0);
+	recordGame("10UB-09 BOTTARINI", "10UB-13 GUERRERO", 0, 2, 7);
+	recordGame("10UB-15 TEAGUE", "10UB-10 CAHAN", 0, 1, 4);
+
+	// 10/13/18
+
+	recordGame("10UB-11 THUNE", "10UB-09 BOTTARINI", 0.5, 3, 3);
+	recordGame("10UB-05 SLAVETT", "10UB-06 HYTOWITZ", 0, 1, 7);
+	recordGame("10UB-01 TASBIHGOO", "10UB-03 GRUSHCOW", 1, 5, 4);
+	recordGame("10UB-02 PAULEY", "10UB-12 DEMARS", 0, 1, 2);
+	recordGame("10UB-10 CAHAN", "10UB-21 TLUSH", 1, 7, 1);
+	recordGame("10UB-20 BECKER", "10UB-14 IGNATOVSKY", 0, 2, 4);
+	recordGame("10UB-22 JOHNSON", "10UB-07 SHOKRIAN", 0, 3, 7);
+	recordGame("10UB-16 WILLIAMS", "10UB-08 PFORZHEIMER", 0.5, 3, 3);
+	recordGame("10UB-18 TIMSIT", "10UB-19 FRANK", 0, 1, 6);
+	recordGame("10UB-04 KATZ", "10UB-17 MONTERO", 1, 4, 3);
+	recordGame("10UB-13 GUERRERO", "10UB-15 TEAGUE", 0, 1, 2);
+
+
+	//10/20/18
+
+	recordGame("10UB-19 FRANK", "10UB-04 KATZ", 0, 2, 3);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-22 JOHNSON", 1, 8, 0);
+	recordGame("10UB-14 IGNATOVSKY", "10UB-05 SLAVETT", 0, 1, 5);
+	recordGame("10UB-17 MONTERO", "10UB-16 WILLIAMS", 0, 1, 5);
+	recordGame("10UB-07 SHOKRIAN", "10UB-11 THUNE", 1, 5, 2);
+	recordGame("10UB-09 BOTTARINI", "10UB-01 TASBIHGOO", 0, 1, 9);
+	recordGame("10UB-12 DEMARS", "10UB-18 TIMSIT", 0, 3, 5);
+	recordGame("10UB-06 HYTOWITZ", "10UB-10 CAHAN", 1, 6, 2);
+	recordGame("10UB-03 GRUSHCOW", "10UB-02 PAULEY", 0, 0, 3);
+	recordGame("10UB-13 GUERRERO", "10UB-20 BECKER", 1, 6, 2);
+	recordGame("10UB-15 TEAGUE", "10UB-21 TLUSH", 0, 1, 4);
+
+	// 10/27/18
+
+	recordGame("10UB-01 TASBIHGOO", "10UB-13 GUERRERO", 1, 9, 5);
+	recordGame("10UB-02 PAULEY", "10UB-09 BOTTARINI", 1, 3, 2);
+	recordGame("10UB-20 BECKER", "10UB-08 PFORZHEIMER", 0, 1, 6);
+	recordGame("10UB-18 TIMSIT", "10UB-03 GRUSHCOW", 0, 0, 5);
+	recordGame("10UB-05 SLAVETT", "10UB-07 SHOKRIAN", 1, 8, 1);
+	recordGame("10UB-21 TLUSH", "10UB-06 HYTOWITZ", 0, 3, 9);
+	recordGame("10UB-04 KATZ", "10UB-12 DEMARS", 0, 5, 6);
+	recordGame("10UB-11 THUNE", "10UB-15 TEAGUE", 0, 5, 6);
+	recordGame("10UB-16 WILLIAMS", "10UB-19 FRANK", 0, 1, 5);
+	recordGame("10UB-22 JOHNSON", "10UB-17 MONTERO", 0, 1, 2);
+	recordGame("10UB-10 CAHAN", "10UB-14 IGNATOVSKY", 1, 7, 1);
+
+	// 11/3/18
+	recordGame("10UB-14 IGNATOVSKY", "10UB-21 TLUSH", 0, 2, 3);
+	recordGame("10UB-13 GUERRERO", "10UB-02 PAULEY", 1, 6, 0);
+	recordGame("10UB-03 GRUSHCOW", "10UB-04 KATZ", 1, 7, 2);
+	recordGame("10UB-07 SHOKRIAN", "10UB-10 CAHAN", 1, 5, 4);
+	recordGame("10UB-12 DEMARS", "10UB-16 WILLIAMS", 0, 1, 8);
+	recordGame("10UB-15 TEAGUE", "10UB-06 HYTOWITZ", 0, 2, 10);
+	recordGame("10UB-11 THUNE", "10UB-01 TASBIHGOO", 0, 2, 10);
+	recordGame("10UB-09 BOTTARINI", "10UB-18 TIMSIT", 1, 6, 2);
+	recordGame("10UB-19 FRANK", "10UB-22 JOHNSON", 1, 8, 4);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-05 SLAVETT", 1, 3, 2);
+	recordGame("10UB-17 MONTERO", "10UB-20 BECKER", 1, 1, 0);
+
+	// 11/10/18
+	// skip - fires
+
+	// 11/17/18
+	recordGame("10UB-07 SHOKRIAN", "10UB-06 HYTOWITZ", 0, 2, 5);
+	recordGame("10UB-12 DEMARS", "10UB-20 BECKER", 0, 1, 3);
+	recordGame("10UB-15 TEAGUE", "10UB-18 TIMSIT", 1, 1, 0);
+	recordGame("10UB-03 GRUSHCOW", "10UB-22 JOHNSON", 0, 2, 3);
+	recordGame("10UB-17 MONTERO", "10UB-10 CAHAN", 0, 3, 5);
+	recordGame("10UB-09 BOTTARINI", "10UB-16 WILLIAMS", 1, 4, 3);
+	recordGame("10UB-19 FRANK", "10UB-05 SLAVETT", 1, 4, 2);
+	recordGame("10UB-13 GUERRERO", "10UB-04 KATZ", 1, 3, 2);
+	recordGame("10UB-08 PFORZHEIMER", "10UB-14 IGNATOVSKY", 1, 6, 1);
+	recordGame("10UB-01 TASBIHGOO", "10UB-02 PAULEY", 1, 5, 3);
+	recordGame("10UB-11 THUNE", "10UB-21 TLUSH", 0.5, 4, 4);
+
+}
+
+function recordGames10uG2018()
+{
+recordGame("10UG-02 COSTINO", "10UG-05 LEWIN", 0.5, 0, 0);
+recordGame("10UG-06 GUZMAN", "10UG-03 EISENBERG", 0, 1, 5);
+recordGame("10UG-13 SANDLER", "10UG-12 MCKENNA", 1, 7, 1);
+recordGame("10UG-09 COLBERT", "10UG-16 DEBOISSY", 0, 2, 3);
+recordGame("10UG-01 BURKE", "10UG-15 DICHTER", 0.5, 1, 1);
+recordGame("10UG-04 REIMBOLD", "10UG-08 VALADEZ", 0, 2, 6);
+recordGame("10UG-07 TIMSIT", "10UG-11 HONG", 0, 0, 7);
+recordGame("10UG-10 COLLINS", "10UG-14 LACAVA", 0, 0, 4);
+recordGame("10UG-12 MCKENNA", "10UG-07 TIMSIT", 1, 6, 0);
+recordGame("10UG-14 LACAVA", "10UG-01 BURKE", 0, 1, 4);
+recordGame("10UG-03 EISENBERG", "10UG-02 COSTINO", 1, 7, 1);
+recordGame("10UG-05 LEWIN", "10UG-10 COLLINS", 0.5, 1, 1);
+recordGame("10UG-15 DICHTER", "10UG-09 COLBERT", 0, 1, 3);
+recordGame("10UG-16 DEBOISSY", "10UG-13 SANDLER", 0, 2, 4);
+recordGame("10UG-08 VALADEZ", "10UG-06 GUZMAN", 1, 4, 0);
+recordGame("10UG-11 HONG", "10UG-04 REIMBOLD", 1, 7, 2);
+recordGame("10UG-14 LACAVA", "10UG-13 SANDLER", 0, 1, 5);
+recordGame("10UG-16 DEBOISSY", "10UG-11 HONG", 0, 1, 3);
+recordGame("10UG-03 EISENBERG", "10UG-01 BURKE", 1, 3, 2);
+recordGame("10UG-05 LEWIN", "10UG-09 COLBERT", 0.5, 1, 1);
+recordGame("10UG-12 MCKENNA", "10UG-04 REIMBOLD", 0.5, 1, 1);
+recordGame("10UG-06 GUZMAN", "10UG-02 COSTINO", 0, 2, 5);
+recordGame("10UG-08 VALADEZ", "10UG-10 COLLINS", 1, 4, 1);
+recordGame("10UG-15 DICHTER", "10UG-07 TIMSIT", 1, 4, 3);
+recordGame("10UG-11 HONG", "10UG-12 MCKENNA", 1, 8, 0);
+recordGame("10UG-13 SANDLER", "10UG-15 DICHTER", 1, 7, 1);
+recordGame("10UG-02 COSTINO", "10UG-08 VALADEZ", 0, 0, 7);
+recordGame("10UG-07 TIMSIT", "10UG-16 DEBOISSY", 0, 0, 6);
+recordGame("10UG-01 BURKE", "10UG-05 LEWIN", 1, 4, 1);
+recordGame("10UG-10 COLLINS", "10UG-03 EISENBERG", 0, 2, 6);
+recordGame("10UG-04 REIMBOLD", "10UG-06 GUZMAN", 1, 3, 2);
+recordGame("10UG-09 COLBERT", "10UG-14 LACAVA", 0, 0, 1);
+recordGame("10UG-10 COLLINS", "10UG-06 GUZMAN", 1, 4, 0);
+recordGame("10UG-09 COLBERT", "10UG-03 EISENBERG", 0, 0, 4);
+recordGame("10UG-01 BURKE", "10UG-08 VALADEZ", 0, 2, 3);
+recordGame("10UG-07 TIMSIT", "10UG-14 LACAVA", 0, 1, 4);
+recordGame("10UG-13 SANDLER", "10UG-05 LEWIN", 1, 5, 0);
+recordGame("10UG-04 REIMBOLD", "10UG-02 COSTINO", 1, 4, 2);
+recordGame("10UG-12 MCKENNA", "10UG-16 DEBOISSY", 0, 1, 7);
+recordGame("10UG-11 HONG", "10UG-15 DICHTER", 1, 3, 2);
+recordGame("10UG-05 LEWIN", "10UG-07 TIMSIT", 1, 3, 2);
+recordGame("10UG-03 EISENBERG", "10UG-13 SANDLER", 0.5, 3, 3);
+recordGame("10UG-16 DEBOISSY", "10UG-04 REIMBOLD", 1, 7, 1);
+recordGame("10UG-08 VALADEZ", "10UG-09 COLBERT", 1, 3, 1);
+recordGame("10UG-15 DICHTER", "10UG-12 MCKENNA", 0, 0, 3);
+recordGame("10UG-06 GUZMAN", "10UG-01 BURKE", 0, 1, 2);
+recordGame("10UG-14 LACAVA", "10UG-11 HONG", 0, 0, 2);
+recordGame("10UG-02 COSTINO", "10UG-10 COLLINS", 0, 0, 1);
+recordGame("10UG-12 MCKENNA", "10UG-14 LACAVA", 0, 1, 2);
+recordGame("10UG-07 TIMSIT", "10UG-03 EISENBERG", 0, 0, 5);
+recordGame("10UG-16 DEBOISSY", "10UG-15 DICHTER", 0.5, 3, 3);
+recordGame("10UG-04 REIMBOLD", "10UG-10 COLLINS", 1, 3, 1);
+recordGame("10UG-13 SANDLER", "10UG-08 VALADEZ", 1, 4, 2);
+recordGame("10UG-01 BURKE", "10UG-02 COSTINO", 1, 4, 0);
+recordGame("10UG-11 HONG", "10UG-05 LEWIN", 1, 2, 1);
+recordGame("10UG-09 COLBERT", "10UG-06 GUZMAN", 1, 1, 0);
+recordGame("10UG-15 DICHTER", "10UG-04 REIMBOLD", 0, 2, 5);
+recordGame("10UG-14 LACAVA", "10UG-16 DEBOISSY", 0.5, 2, 2);
+recordGame("10UG-05 LEWIN", "10UG-12 MCKENNA", 1, 3, 0);
+recordGame("10UG-06 GUZMAN", "10UG-13 SANDLER", 0, 0, 3);
+recordGame("10UG-10 COLLINS", "10UG-01 BURKE", 0, 0, 3);
+recordGame("10UG-08 VALADEZ", "10UG-07 TIMSIT", 1, 4, 1);
+recordGame("10UG-02 COSTINO", "10UG-09 COLBERT", 0, 0, 6);
+recordGame("10UG-03 EISENBERG", "10UG-11 HONG", 0, 2, 3);
+recordGame("10UG-01 BURKE", "10UG-09 COLBERT", 0.5, 1, 1);
+recordGame("10UG-02 COSTINO", "10UG-07 TIMSIT", 0, 0, 3);
+recordGame("10UG-08 VALADEZ", "10UG-12 MCKENNA", 1, 6, 0);
+recordGame("10UG-05 LEWIN", "10UG-15 DICHTER", 0, 2, 6);
+recordGame("10UG-10 COLLINS", "10UG-13 SANDLER", 0, 0, 8);
+recordGame("10UG-03 EISENBERG", "10UG-16 DEBOISSY", 1, 5, 1);
+recordGame("10UG-06 GUZMAN", "10UG-11 HONG", 0, 2, 3);
+recordGame("10UG-14 LACAVA", "10UG-04 REIMBOLD", 0, 2, 3);
+recordGame("10UG-13 SANDLER", "10UG-01 BURKE", 1, 4, 1);
+recordGame("10UG-04 REIMBOLD", "10UG-09 COLBERT", 0, 1, 4);
+recordGame("10UG-16 DEBOISSY", "10UG-08 VALADEZ", 0, 1, 5);
+recordGame("10UG-14 LACAVA", "10UG-05 LEWIN", 0.5, 2, 2);
+recordGame("10UG-11 HONG", "10UG-02 COSTINO", 1, 6, 0);
+recordGame("10UG-15 DICHTER", "10UG-03 EISENBERG", 0, 1, 8);
+recordGame("10UG-07 TIMSIT", "10UG-10 COLLINS", 0.5, 2, 2);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <!-- remote jQuery-->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+    <!-- remote table library 3 -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+    <script type="text/javascript" language="javascript"
+        src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdn.datatables.net/plug-ins/1.12.1/features/searchHighlight/dataTables.searchHighlight.css">
+    <script type="text/javascript" language="javascript"
+        src="https://cdn.datatables.net/plug-ins/1.12.1/features/searchHighlight/dataTables.searchHighlight.min.js"></script>
+    <script type="text/javascript" language="javascript"
+        src="https://bartaz.github.io/sandbox.js/jquery.highlight.js"></script>
+    <!-- /table library 3-->
+
+    <!-- font awesome-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- local code-->
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <script type="text/javascript" language="javascript" src="index.js"></script>
+    <!-- /local code-->
+
+    <style>
+        .clickme {
+            cursor: pointer;
+        }
+
+        #example tbody tr td+td {
+            cursor: pointer;
+        }
+
+        /**/
+    </style>
+
+</head>
+
+<body>
+    <center>
+        <table>
+            <tr>
+                <td valign="top">
+                    <table id="example" class="display" style="width:50%"></table>
+                </td>
+                <td valign="top">
+                    <div id="results" style="text-align: left"></div>
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                <textarea rows="4" cols="60" id="thescores" onchange="processScores()"
+                                    oninput="processScores()"></textarea>
+                            </td>
+
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="button" value="Clear Scores" onclick="clearScores()"></input>
+                                <input type="button" value="Load Scores" onclick="processScores()"></input>
+                            </td>
+
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="https://cgisports.com/ref/5555/stats/?user=public&ck=&search_records=Search&div_schedule=12UB"
+                                    target="_blank">12uB Scores ↗️</a>
+                            </td>
+
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div id="error" style="color: red;"></div>
+                </td>
+            </tr>
+        </table>
+    </center>
+
+    <span onclick="copyMermaid()">COPY 📋</span> <a href="https://mermaid.live/" target="_blank>">Mermaid ↗️</a>
+    <pre id="graph" class="mermaid"></pre>
+</body>
+
+</html>

@@ -1,0 +1,718 @@
+<html>
+<head>
+<meta charset="utf-8"/>
+
+<!--
+ONLINE
+-->
+
+<!--  
+<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" />
+
+<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+	
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.flash.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/pdfmake.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/vfs_fonts.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.html5.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/1.5.2/js/buttons.print.min.js"></script>
+	
+ -->
+
+<!--
+OFFLINE
+-->
+
+	<link rel="stylesheet" type="text/css" media="screen" href="jquery.dataTables.min.css" />
+
+	<script type="text/javascript" language="javascript" src="jquery-3.1.1.js"></script>
+	<script type="text/javascript" language="javascript" src="jquery.dataTables.min.js"></script>
+ 
+<!-- -----------------------------------------------------------------  -->	
+	<style>
+		.tie{  background-color: orange; color: white; padding: 0px 2px; }
+		.win{ background-color: green; color: white; padding: 0px 2px;}
+		.lose{  background-color: red; color: white; padding: 0px 2px; }
+		
+		td.highlight, tr.highlight {
+			background-color: yellow !important;
+		}
+}
+
+	</style>
+	
+<script>
+
+
+
+var bUseScores = false;
+var bDecimal = 0;
+var kFactor = 25;
+var chanceWinDivider = 600;
+
+var bTournamentScoring = false;
+
+
+var pointsWin = bTournamentScoring ? 6 : 3;
+var pointsTie = bTournamentScoring ? 3 : 1;
+var pointsLose = bTournamentScoring ? 0 : 0;
+
+var pointsGoalMax = bTournamentScoring ? 3 : 0;
+var pointsWinShutout = bTournamentScoring ? 1 : 0;
+var pointsMax = bTournamentScoring ? 10 : 3;
+
+// Opponents/choices for the battles
+var arrTeams = [];
+var dataSet =  [];
+var gamesByTeam = [];
+var gamesByVs = [];
+var arrScheduleByTeam = [];
+var kvpSchedulesByGame = [];
+
+/****************************************
+*
+* ELO 
+*
+* https://github.com/moroshko/elo.js/blob/master/elo.js
+*
+* Adjusted to support a multiplier to account for goal differential and a variable kFactor and chance to win divider
+*
+*****************************************/
+
+window.Elo = (function() {
+  function getRatingDelta(myRating, opponentRating, myGamep_result, p_goalMultiplier) {
+    if ([0, 0.5, 1].indexOf(myGamep_result) === -1) {
+      return null;
+    }
+	
+    var multiplier = p_goalMultiplier || 1;
+	
+    return kFactor * multiplier * (myGamep_result - getChanceToWin(myRating, opponentRating));
+  }
+
+  function getChanceToWin(myRating, opponentRating) {
+    return 1 / ( 1 + Math.pow(10, (opponentRating - myRating) / chanceWinDivider ));
+  }
+  
+  function getNewRating(myRating, opponentRating, myGamep_result, p_goalMultiplier) {
+    return myRating + getRatingDelta(myRating, opponentRating, myGamep_result, p_goalMultiplier);
+  }
+
+  return {
+    getRatingDelta: getRatingDelta,
+    getNewRating: getNewRating,
+	getChanceToWin: getChanceToWin
+  };
+})();
+
+/****************************************
+*
+* Implementation
+*
+*****************************************/
+
+var left = null;
+var right = null;
+
+var iName = 1;
+var iScore = 2;
+var iBattles = 3;
+var iWin = 4;
+var iLose = 5;
+var iTie = 6;
+var iGoalFor = 7;
+var iGoalAgainst = 8;
+
+var iOpWin = 9;
+var iOpLose = 10;
+var iOpponents = 11;
+var iChange = 12;
+
+var iPoints = 13;
+var iOpScore = 14;
+var iGoalDiff = 15;
+
+var iOpTie = 16;
+
+var iSoS = 17;
+var iSoV = 18;
+var iPPct = 19;
+
+function myRound(p_numToRound, p_digits)
+{
+	var num = p_numToRound || 0;
+	var dig = p_digits || 0;
+	
+	if(dig == 0)
+	{
+		return Math.round( num );
+	}
+	else if( dig > 0 )
+	{
+		return num.toPrecision( dig );
+	}
+	else
+	{
+		return num;
+	}
+}
+
+function updateRatings(p_p_result, p_skipUpdatingTable, p_goalMultiplier)
+{
+	var leftTeam = dataSet[left];
+	var rightTeam = dataSet[right];
+
+	// delta
+	leftTeam[iChange] = myRound( Elo.getRatingDelta( leftTeam[iScore], rightTeam[iScore], 1 - p_p_result, p_goalMultiplier), 0);
+	rightTeam[iChange] = myRound( Elo.getRatingDelta( rightTeam[iScore], leftTeam[iScore], p_p_result, p_goalMultiplier) );
+
+	// new score 
+	leftTeam[iScore] = myRound( Elo.getNewRating( leftTeam[iScore], rightTeam[iScore], 1 - p_p_result, p_goalMultiplier), 0);
+	rightTeam[iScore] = myRound( Elo.getNewRating( rightTeam[iScore], leftTeam[iScore], p_p_result, p_goalMultiplier), 0);
+
+	// battles
+	leftTeam[iBattles] =  ( leftTeam[iBattles] || 0) + 1 
+	rightTeam[iBattles] = ( rightTeam[iBattles] || 0) + 1;
+	
+	if(p_skipUpdatingTable)
+	{
+	
+	}
+	else
+	{
+		updateTable();
+		loadButtons();
+	}	
+}
+
+function updateTable()
+{
+	// clear it
+	oTable.clear();
+	
+	// set data
+	oTable.rows.add( dataSet );
+	
+	// redraw
+	oTable.draw();
+}
+
+function addTeam(p_strTeamName)
+{
+	dataSet = dataSet || [];
+	arrTeams  = arrTeams || [];
+	
+	dataSet.push( [ 0,  p_strTeamName, 1000, null, null, null, null, 0, 0, 0, 0, [], null, 0, 0, 0, 0, 0, 0, 0])
+	arrTeams.push(p_strTeamName);
+}
+
+function addGameByTeam(p_strMainTeam, p_strGame)
+{
+	gamesByTeam = gamesByTeam || [];
+	
+	gamesByTeam[p_strMainTeam] = gamesByTeam[p_strMainTeam] || [];
+	
+	gamesByTeam[p_strMainTeam].push(p_strGame);
+}
+
+
+function addGameByVs(p_strAvsB, p_strGame)
+{
+	gamesByVs = gamesByVs || [];
+	
+	gamesByVs[p_strAvsB] = gamesByVs[p_strAvsB] || [];
+	
+	gamesByVs[p_strAvsB].push(p_strGame);
+}
+
+
+
+function recordGame( p_leftTeam,p_rightTeam , p_result, leftScore, rightScore)
+{
+	
+	var fixRightTeamName = p_leftTeam;
+	var fixLeftTeamName = p_rightTeam;
+	
+	right = arrTeams.indexOf(fixRightTeamName);
+	
+	var leftStyle = "tie";
+	var rightStyle = "tie";
+
+	if(right < 0)
+	{
+		addTeam(fixRightTeamName);
+		right = arrTeams.indexOf(fixRightTeamName);
+	}
+
+	left = arrTeams.indexOf(fixLeftTeamName);
+	if(left < 0)
+	{
+		addTeam(fixLeftTeamName);
+		left = arrTeams.indexOf(fixLeftTeamName);
+	}
+	
+	var leftTeam = dataSet[left];
+	var rightTeam = dataSet[right];
+	
+	leftTeam[iOpponents].push(right);
+	rightTeam[iOpponents].push(left);
+	
+	
+	var goalMultiplier = 1; 
+	
+	if(bUseScores)
+	{
+		var winnerRating = (leftScore > rightScore) ? leftTeam[iScore] : rightTeam[iScore];
+		var loserRating =  (rightScore > leftScore) ? rightTeam[iScore] : leftTeam[iScore];
+	
+		// https://fivethirtyeight.com/features/introducing-nfl-elo-ratings/
+		goalMultiplier = Math.min( 1, Math.log(Math.abs( leftScore - rightScore )+1) * (2.2/((winnerRating-loserRating)*0.001+2.2)) );
+		console.log(goalMultiplier);
+	}
+	
+	updateRatings(p_result, true, goalMultiplier);
+
+	var leftPoints = 0;
+	var rightPoints = 0;
+
+	leftTeam[iPoints] += Math.min( pointsGoalMax, rightScore);
+	rightTeam[iPoints] += Math.min( pointsGoalMax, leftScore);
+
+	// left win 
+	if( p_result == 0)
+	{
+		leftStyle = "win";
+		rightStyle = "lose";
+		
+		leftPoints += pointsWin;
+
+		if(leftScore == 0)
+		{
+			leftPoints += pointsWinShutout
+		}
+
+		leftTeam[iWin] =  ( leftTeam[iWin] || 0) + 1 
+		rightTeam[iLose] = ( rightTeam[iLose] || 0) + 1;
+	}
+	// left lose
+	else if( p_result == 1)
+	{
+		leftStyle = "lose";
+		rightStyle = "win";
+	
+		if(rightScore == 0)
+		{
+			rightPoints += pointsWinShutout
+		}
+
+		rightPoints += pointsWin;
+		
+		rightTeam[iWin] =  ( rightTeam[iWin] || 0) + 1 
+		leftTeam[iLose] = ( leftTeam[iLose] || 0) + 1;
+	}
+	// tie
+	else
+	{
+		leftPoints += pointsTie;
+		rightPoints += pointsTie;
+		
+		leftTeam[iTie] =  ( leftTeam[iTie] || 0) + 1 
+		rightTeam[iTie] = ( rightTeam[iTie] || 0) + 1;
+	}
+
+	leftTeam[iPoints] = leftTeam[iPoints] + Math.min( pointsMax, leftPoints);
+	rightTeam[iPoints] = rightTeam[iPoints] + Math.min( pointsMax, rightPoints);
+
+	leftTeam[iGoalAgainst] =  ( leftTeam[iGoalAgainst] || 0) + leftScore;
+	leftTeam[iGoalFor] =  ( leftTeam[iGoalFor] || 0) + rightScore;
+	leftTeam[iGoalDiff] =  leftTeam[iGoalFor] - leftTeam[iGoalAgainst];
+	leftTeam[iGoalDiff] = ( leftTeam[iGoalDiff] > 0) ? "+" + leftTeam[iGoalDiff] : leftTeam[iGoalDiff];
+	
+	rightTeam[iGoalAgainst] =  ( rightTeam[iGoalAgainst] || 0) + rightScore;
+	rightTeam[iGoalFor] =  ( rightTeam[iGoalFor] || 0) + leftScore;
+	rightTeam[iGoalDiff] =  rightTeam[iGoalFor] - rightTeam[iGoalAgainst];
+	rightTeam[iGoalDiff] = ( rightTeam[iGoalDiff] > 0) ? "+" + rightTeam[iGoalDiff] : rightTeam[iGoalDiff];
+	
+	addGameByTeam(fixLeftTeamName, 
+			// "<span onclick='showGames(\"" + fixLeftTeamName + "\")'>" + fixLeftTeamName + "</span>" 
+			""
+			+ "<span class='"+ leftStyle +"'>" + rightScore  + " - " + leftScore + "</span>"
+			+ " vs " 
+			+ "<span onclick='showGames(\"" + fixRightTeamName + "\")'>" + fixRightTeamName + "</span>" 
+			);
+			
+	addGameByTeam(fixRightTeamName, 
+			// "<span onclick='showGames(\"" + fixRightTeamName + "\")'>" + fixRightTeamName + "</span>" 
+			""
+			+ "<span class='"+ rightStyle +"'>" + leftScore  + " - " + rightScore + "</span>"
+			+ " vs " 
+			+ "<span onclick='showGames(\"" + fixLeftTeamName + "\")'>" + fixLeftTeamName + "</span>" 
+			);
+	
+	
+	addGameByVs(fixLeftTeamName + " vs " + fixRightTeamName, 
+			// "<span onclick='showGames(\"" + fixLeftTeamName + "\")'>" + fixLeftTeamName + "</span>" 
+			""
+			+ "<span class='"+ leftStyle +"'>" + rightScore  + " - " + leftScore + "</span>"
+			+ " vs " 
+			+ "<span onclick='showGames(\"" + fixRightTeamName + "\")'>" + fixRightTeamName + "</span>" 
+			);
+			
+	addGameByVs(fixRightTeamName + " vs " + fixLeftTeamName, 
+			// "<span onclick='showGames(\"" + fixRightTeamName + "\")'>" + fixRightTeamName + "</span>" 
+			""
+			+ "<span class='"+ rightStyle +"'>" + leftScore  + " - " + rightScore + "</span>"
+			+ " vs " 
+			+ "<span onclick='showGames(\"" + fixLeftTeamName + "\")'>" + fixLeftTeamName + "</span>" 
+			);
+}
+
+
+function updateOpponentWinLoss()
+{
+	// go through each team
+	for(var i=0; i < dataSet.length; i++)
+	{
+		// touch each opponent
+		for (var j=0; j< dataSet[i][iOpponents].length; j++)
+		{
+			// and accumulate the wins and losses
+			dataSet[i][iOpWin] += dataSet[dataSet[i][iOpponents][j]][iWin];
+			dataSet[i][iOpLose] += dataSet[dataSet[i][iOpponents][j]][iLose];
+			dataSet[i][iOpTie] += dataSet[dataSet[i][iOpponents][j]][iTie];
+			
+			dataSet[i][iOpScore] += dataSet[ dataSet[i][iOpponents][j] ][iScore];
+		}
+	
+		// calculate strength of schedule
+		dataSet[i][iSoS] = myRound(  (dataSet[i][iOpWin] / ( dataSet[i][iOpWin] + dataSet[i][iOpLose] + dataSet[i][iOpTie])), 2);
+
+
+		// subtract MY wins and losses from opponent
+		dataSet[i][iOpWin] -= dataSet[i][iWin];
+		dataSet[i][iOpLose] -= dataSet[i][iLose];
+		dataSet[i][iOpTie] -= dataSet[i][iTie];
+	
+		dataSet[i][iOpScore] = myRound( ( dataSet[i][iOpScore] / dataSet[i][iBattles] ), 0);
+		
+		
+		dataSet[i][iPPct] =  myRound( (dataSet[i][iPoints] / ( dataSet[i][iBattles] * 3 ) ), 2);
+		
+
+		
+		/*
+		
+			TODO - Strength of Schedule 
+			
+			 2016 New England Patriots had a combined record of 111–142–3 (a win percentage of 0.439, the SOS), and Patriots' wins came against teams with a combined record of 93–129–2 (a win percentage of 0.420, the SOV). 
+			 
+		*/
+		
+		// TEMP 
+		// dataSet[i][iPoints] = (dataSet[i][iSoS] * dataSet[i][iPoints]).toPrecision(3);
+	}
+}
+
+/****************************************
+*****************************************
+*
+* Starter function starts it all 
+*
+****************************************
+*****************************************/
+
+var oTable = null;
+
+$(document).ready(function() {
+
+	// createDataSet( arrTeams );
+
+    oTable = $('#example').DataTable( {
+          "order": [
+					  [ 2, "desc" ]
+					, [ 3, "desc" ]
+					]
+		, dom: 'Bfrtip'
+		, paging: false
+		, info: false
+		, searching: false 
+		, rowId: iName
+		
+		/** TEMP
+		, buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]**/
+		, "data": dataSet
+		, "displayLength": 50
+		
+        , "columns": [
+
+			// basic labels
+			  { title: "Index", className: "dt-body-right dt-head-right" }
+			, { title: "Club", className: "dt-body-left dt-head-left dt-nowrap", data: iName,  }
+            
+			// calculated points
+			, { title: "<span title='Points'>Pts</span>", className: "dt-body-center dt-head-center", data: iPoints }
+			, { title: "<span title='Points'>Pts%</span>", className: "dt-body-center dt-head-center", data: iPPct }
+			
+			
+            , { title: "<span title='Elo Rating'>Elo</span>", className: "dt-body-right dt-head-right", data: iScore }
+			// , { title: "Change", className: "dt-body-center dt-head-center", data: iChange }
+
+			// straight-up stats
+		    , { title: "<span title='Matches Played'>MP</span>" , className: "dt-body-center dt-head-center", data: iBattles }
+			, { title: "<span title='Wins'>W</span>", className: "dt-body-center dt-head-center", data: iWin  }
+            , { title: "<span title='Draws'>D</span>", className: "dt-body-center dt-head-center", data: iTie }
+			, { title: "<span title='Losses'>L</span>", className: "dt-body-center dt-head-center", data: iLose }
+			
+			
+			// goals scored/allowed
+			, { title: "<span title='Goals For'>GF</span>", className: "dt-body-right dt-head-right", data: iGoalFor }
+            , { title: "<span title='Goals Against'>GA</span>", className: "dt-body-right dt-head-right", data:iGoalAgainst  }
+            , { title: "<span title='Goals Differential'>GD</span>", className: "dt-body-right dt-head-right", data:iGoalDiff  }
+			
+			// team's opponents strength/performance
+			, { title: "<span title='Strength of schedule based on opponent average rating'>OpElo</span>", className: "dt-body-right dt-head-right", data: iOpScore }
+            
+			/*
+			, { title: "<span title='Opponents wins, excluding this team'>OpWin</span>", className: "dt-body-right dt-head-right", data: iOpWin }
+            , { title: "<span title='Opponents losses, excluding this team'>OpLose</span>", className: "dt-body-right dt-head-right", data: iOpLose }
+            , { title: "<span title='Opponents ties, excluding this team'>OpTie</span>", className: "dt-body-right dt-head-right", data: iOpTie }
+			*/
+			
+			, { title: "<span title='Strength of Schedule: Opponents record'>SoS</span>", className: "dt-body-right dt-head-right", data: iSoS }
+            // , { title: "<span title='Strength of Victory: record of teams this team beat'>SoV</span>", className: "dt-body-right dt-head-right", data: iSoV }
+            
+        ]
+    } );
+	
+	oTable.on( 'order.dt search.dt', function () {
+        oTable.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = (i+1) ;
+        } );
+    } ).draw();
+	
+	var table = $('#example').DataTable();
+ 
+	$('#example tbody').on('click', 'tr', function () {
+	
+			
+        var data = table.row( this ).data();
+
+        //console.log("click", data);
+		
+		var teamName = data[1];
+		//var teamID = arrTeams.indexOf(teamName);
+		//var team = dataSet[teamID];
+		
+		//console.log("team", team);
+		
+		showGames(teamName);
+		
+    } );
+	
+	
+	// let's capture each game in the database
+	processScores();
+
+	processSchedule();
+	
+	//recordGames();
+} );
+
+function showGames(p_strTeam)
+{
+	/*
+	// what are the results
+	var str = p_strTeam + "<br/>" 
+				+ "<ol>" + "<li>" + gamesByTeam[p_strTeam].join("</li><li>") + "</li>" + "</ol>";
+	
+	// where how are we showing
+	$("#results").html( str );
+	*/
+	
+	// what are the results
+	var str = p_strTeam + "<br/>";
+
+	var schedule = arrScheduleByTeam[p_strTeam];
+	
+	if(schedule)
+	{
+		str += "<ol>";
+		for(var i = 0; i < schedule.length; i++)
+		{
+			//console.log( schedule[i] );
+			str += "<li>" + ( gamesByVs[ schedule[i]] || kvpSchedulesByGame[ schedule[i] ])  + "</li>"; 
+		}
+		str += "</ol>";
+
+	}
+	else
+	{
+		str += "<ol>" + "<li>" + gamesByTeam[p_strTeam].join("</li><li>") + "</li>" + "</ol>";
+	}
+	
+	// where how are we showing
+	$("#results").html( str );
+	
+}
+
+function clearScores()
+{
+	$('#thescores').val("");
+	clearTable();
+	clearError();
+}
+
+function clearTable()
+{
+	// RESET global objects
+	arrTeams = [];
+	dataSet =  [];
+	gamesByTeam = [];
+	gamesByVs = [];
+
+	// final call to redraw table
+	updateTable();
+	
+	clearError();
+}
+
+function processScores()
+{
+	clearError();
+
+	// RESET global objects
+	arrTeams = [];
+	dataSet =  [];
+	gamesByTeam = [];
+	gamesByVs = [];
+	
+	// pickup the lines
+	var lines = $('#thescores').val().split('\n');
+	var pieces = [];
+	
+	var iProcessed = 0;
+	
+	
+	var leftSide = "";
+	var rightSide = "";
+	
+	// go line by line 
+	// for(var i = 0; i < lines.length;i++)
+	
+	// go line by line from the BOTTOM
+	for(var i = lines.length - 1; i >= 0; i--)
+	{
+		//e.g.
+		// APR 25  	LIGHTNING B2010 - 1  	USARMS ARMERG FC ARMOR B2010 - 0
+		
+		pieces = lines[i].split('\t');
+		
+		if(pieces.length != 3)
+		{	continue;	}
+		
+		leftSide = pieces[1];
+		rightSide = pieces[2];
+		
+		leftSide = leftSide.split(" - ");
+		rightSide = rightSide.split(" - ");
+		
+		leftSide[1] = leftSide[1] * 1;
+		rightSide[1] = rightSide[1] * 1;
+		
+		// we're done parsing, let's record the game
+		
+		// function recordGame( p_leftTeam,p_rightTeam , p_result, leftScore, rightScore)
+		
+		recordGame(leftSide[0], rightSide[0]
+									, ( rightSide[1] > leftSide[1] ) ? 0 : ( leftSide[1] > rightSide[1] ? 1 : 0.5 )
+									, leftSide[1], rightSide[1] );
+									
+		iProcessed++;
+	}
+
+	if(iProcessed <= 0)
+	{
+		setError("Did not find any games to process. Check input.");
+	}
+
+
+	// let's add up opponent win/loss
+	updateOpponentWinLoss()
+
+	// final call to redraw table
+	updateTable();
+
+}
+
+function setError(p_msg)
+{
+	$("#error").html(p_msg);
+}
+
+function clearError()
+{
+	$("#error").html("");
+}
+
+
+</script>
+
+</head>
+
+
+
+<body>
+<center>
+	<div style="font-weight: 600;">Standings</div>
+	<table>
+		<tr>
+			<td valign="top">
+				<table id="example" class="display" style="width:50%"></table>
+			</td>
+			<td valign="top">
+				<div id="results" style="text-align: left"></div>
+			</td>
+		</tr>
+
+		<tr>
+			<td align="center">
+				<textarea rows="20" cols="80" id="thescores" onchange="processScores()"></textarea>
+				<br/>
+				<br/>
+				<input type="button" value="Clear Scores" onclick="clearScores()"></input>
+				<input type="button" value="Process Scores" onclick="processScores()" style="font-weight: bold"></input>
+				<br/>
+				<br/>
+				<a href="https://coastsoccer.us/web/coastsoccer/standings?SEX=B&AGE=10&BRACKET=ZT&SEASON=fall&YEAR=2020" target="_blank">See Scores</a>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<div id="error" style="color: red;"></div>
+			</td>
+		</tr>
+	</table>
+</center>
+
+<script>
+	function recordGames()
+	{
+		// let's add up opponent win/loss
+		updateOpponentWinLoss()
+
+		// final call to redraw table
+		updateTable();
+	}
+</script>
+</body>
+</html>
+<!--
+// REFERENCE for ELO and scoring 
+// https://resources.fifa.com/image/upload/revision-of-the-fifa-coca-cola-world-ranking.pdf?cloudid=iklxmt2jejtjwf8qecba
+// https://fivethirtyeight.com/features/introducing-nfl-elo-ratings/ 
+-->
