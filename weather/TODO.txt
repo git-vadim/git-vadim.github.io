@@ -1,0 +1,55 @@
+    
+** TODO **
+
+Pro vs Free version of the app looks like.
+
+I probably need some kind of config that decides if Current user is Pro or Free. and then based it we give / remove features.
+
+I'll describe some of the Pro vs Free features.
+
+Pro = everyting that is in the app right now
+
+All
+
+Better Mobile 
+
+Free
+
+1 - remove the Toggle Extra Days button and we always show lowlight days with class "lowlightHide"
+
+2 - do not show maximum number of days in the table, limit to 7 days at most
+
+3 - limit adding 3 rows of Cities at most. only Pro can have unlimited cities
+
+4 - only Pro is allowed to add the TO and FROM dates. and if any data is stored, show days without from/to dates styles
+
+
+PRO
+
+* add trips, save trips
+* login to Google, save data there
+* export screenshot
+* view just my travel days, not upcoming or trailing
+* Timezone and Elevation to Pro
+
+FREE
+
+* Consider ADS for the cities where they are traveling?!
+
+
+
+
+
+************
+*** DONE ***
+************
+
+
+ALL
+
+* Add header bar with app name and Avatar and ADD button 
+* 2 share buttons
+** share app
+** share this config
+* move ADD to a popup
+

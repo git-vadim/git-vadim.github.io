@@ -1,0 +1,327 @@
+/* Basic Typography */
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.4; /* Reduced slightly */
+    letter-spacing: 0.01em;
+    color: #333;
+}
+
+h1,
+h2,
+h3 {
+    font-weight: 700;
+    margin-bottom: 0.8rem; /* Reduced slightly */
+}
+
+label {
+    display: block;
+    margin-bottom: 0.1rem; /* Reduced */
+    font-size: 0.8rem; /* Smaller */
+}
+
+input[type="text"],
+input[type="date"],
+button,
+select {
+    font-size: 0.9rem; /* Smaller */
+    padding: 0.3rem; /* Reduced */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 0.1rem; /* Reduced */
+    box-sizing: border-box;
+}
+
+/* Header (form-container) Styling */
+.form-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem; /* Reduced */
+    padding: 0.3rem; /* Reduced */
+    background-color: #f0f0f0;
+    margin-bottom: 0.5rem; /* Reduced */
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .form-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .row1,
+    .row2,
+    .row3,
+    .row4,
+    .row5 {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        margin-bottom: 0.3rem; /* Reduced */
+        gap: 0.3rem; /* Reduced */
+        align-items: center;
+    }
+
+    .row1 > *,
+    .row2 > *,
+    .row3 > *,
+    .row5 > * {
+        flex-grow: 1;
+        margin-bottom: 0;
+        max-width: 100%;
+    }
+
+    .row4 {
+        width: 100%;
+        margin-bottom: 0.3rem; /* Reduced */
+    }
+
+    .row4 button {
+        width: 100%;
+    }
+
+    .form-container label {
+        display: none;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    #lat,
+    #lon {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    /* Lat/Lon Input Field Size */
+    #lat,
+    #lon {
+        width: 8ch; /* Further reduced */
+        text-align: center;
+    }
+
+    #city {
+        width: 15ch; /* Further reduced */
+    }
+
+    #shareableLink {
+        width: 10ch;
+    }
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+    .row1,
+    .row2,
+    .row3,
+    .row4,
+    .row5 {
+        display: contents;
+    }
+
+    .form-container>* {
+        margin-bottom: 0;
+    }
+
+    .form-container label {
+        display: inline-block;
+        margin-right: 0.2rem;
+        margin-bottom: 0;
+    }
+}
+
+/* Lat/Lon Input Field Size */
+#lat,
+#lon {
+    width: 6ch; /* Further reduced */
+    text-align: center;
+}
+
+/* Color Palette */
+body {
+    background-color: #f8f8f8;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #367c38;
+}
+
+input[type="button"] {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+input[type="button"]:hover {
+    background-color: #367c38;
+}
+
+/* Button colors */
+#add {
+    background-color: #008CBA;
+}
+
+#add:hover {
+    background-color: #005f80;
+}
+
+#saveEdit {
+    background-color: #008CBA;
+}
+
+#saveEdit:hover {
+    background-color: #005f80;
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="date"] {
+    width: auto;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus {
+    border-color: #008CBA;
+    box-shadow: 0 0 5px rgba(0, 140, 186, 0.5);
+    outline: none;
+}
+
+/* Table Styling */
+table {
+    border-collapse: collapse;
+    /* width: 100%; Removed width */
+    margin-top: 0.3rem; /* Reduced */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* display: block; removed */
+    width: fit-content; /* fit to contents*/
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 0.2rem; /* Reduced */
+    text-align: center;
+    vertical-align: top;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f8f8;
+}
+
+tr:hover {
+    background-color: #f0f0f0;
+}
+
+/* Dialog Styling */
+dialog {
+    padding: 1rem; /* Reduced */
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Map container */
+#map {
+    height: 400px;
+    width: 600px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Sticky Header Row */
+table thead tr {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f0f0f0;
+}
+
+/* Sticky First Column */
+table tbody td:first-child,
+table thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: white;
+}
+
+/* Adjust the first table cell */
+table th:first-child {
+    z-index: 3;
+}
+
+.highlightDay {
+    /* font-weight: bold; */
+    color: black;
+}
+
+.lowlightDay {
+    color: #4f4f4f;
+    background-color: #c3c3c3;
+}
+
+.lowlightHide {
+    visibility:hidden;
+}
+
+.cityname {
+    font-weight: 700;
+}
+
+/* Edit/Remove Buttons */
+table button {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.8rem;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+table button[title='Remove'] {
+    background-color: red;
+}
+
+table button[title='Edit'] {
+    background-color: #008CBA;
+    border-radius: 4px;
+}
+
+#loadSample {
+    background-color: #9e9e9e;
+}
+
+#loadSample:hover {
+    background-color: #6e6e6e;
+}
+
+/* Modify weather.css */
+#shareButton {
+    background-color: #2986cc;
+    margin-left: 5px;
+}
+
+#shareButton:hover {
+    background-color: #206494;
+}
+
+.table-container {
+    overflow-x: auto;
+}

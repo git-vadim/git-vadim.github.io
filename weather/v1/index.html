@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEMZ4VCDGG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-SEMZ4VCDGG');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- local code-->
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jsrsasign@10.9.0/lib/jsrsasign-all-min.min.js"></script>
+
+
+    <script type="text/javascript" language="javascript" src="icons.js"></script>
+    <script type="text/javascript" language="javascript" src="weather.js"></script>
+    <link rel="stylesheet" type="text/css" href="weather.css">
+    <script>
+        window.onload = function () {
+            main();
+        };
+    </script>
+
+
+
+</head>
+
+<body>
+    <main>
+        <div class="form-container">
+            <div class="row1">
+                <label for="city">City</label>
+                <input type="text" id="city" />
+                <button onclick="search()">Search</button>
+                <button onclick="openMapDialog()">Map</button>
+            </div>
+            <div class="row2">
+                <label for="lat">Lat</label>
+                <input type="text" id="lat" />
+                <label for="lon">Lon</label>
+                <input type="text" id="lon" />
+            </div>
+            <div class="row3">
+                <label for="from">From</label>
+                <input type="date" id="from" />
+                <label for="to">To</label>
+                <input type="date" id="to" />
+            </div>
+            <div class="row4">
+                <button id="add" onclick="addCity()">Add</button>
+            </div>
+            <div class="row5">
+                <button onclick="generateShareableLink()">Make Link</button>
+                <input type="text" id="shareableLink" readonly />
+                <button onclick="copyToClipboard()">Copy</button>
+                <button id="shareButton" onclick="shareLink()">Share</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <div id="results"></div>
+        </div>
+        <br />
+        <button id="loadSample" onclick="loadSample()">Load sample</button>
+        <button id="clearAll" onclick="clearAll()">Clear All</button>
+        <button id="toggleLowlight" onclick="toggleLowlight()">Toggle extra days</button>
+    </main>
+    <dialog id="dialog">
+        <div id="searchResults"></div>
+        <button onclick="dialog.close()">Close</button>
+    </dialog>
+    <dialog id="editDialog">
+        <form method="dialog">
+            <input type="hidden" id="editCityId">
+            <label for="editCityName">City Name:</label>
+            <input type="text" id="editCityName">
+            <label for="editLat">Latitude:</label>
+            <input type="text" id="editLat">
+            <label for="editLon">Longitude:</label>
+            <input type="text" id="editLon">
+            <label for="editFrom">From:</label>
+            <input type="date" id="editFrom">
+            <label for="editTo">To:</label>
+            <input type="date" id="editTo">
+            <button id="saveEdit">Save</button>
+            <button onclick="editDialog.close()">Cancel</button>
+        </form>
+    </dialog>
+    <dialog id="mapDialog">
+        <div id="map"></div>
+        <div id="mapLocation">Click on the map to select a location</div>
+        <button id="useMapLocation" disabled>Use this Location</button>
+        <button onclick="mapDialog.close()">Cancel</button>
+    </dialog>
+</body>
+
+</html>
