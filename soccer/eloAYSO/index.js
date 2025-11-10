@@ -6,7 +6,7 @@
 
 let _bUseScores = false;
 let _bDecimal = 0;
-let _kFactor = 25;
+let _kFactor = 40; //25; // higher convergence factor for younger players
 let _chanceWinDivider = 600;
 
 let _bTournamentScoring = false;
@@ -719,3 +719,4 @@ function recordGames() {
 
     drawGraph();
 }
+
