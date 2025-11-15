@@ -1,22 +1,457 @@
+/* Clean CSS Reset and Base Styles */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8f9fa;
+    margin: 0;
+    padding: 10px;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* Main Container */
+center {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e1e5e9;
+    padding: 20px;
+}
+
+/* Clean Win/Lose/Tie Styling */
 .tie {
-    background-color: orange;
+    background: #ff9800;
     color: white;
-    padding: 0px 2px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 40px;
+    text-align: center;
 }
 
 .win {
-    background-color: green;
+    background: #28a745;
     color: white;
-    padding: 0px 2px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 40px;
+    text-align: center;
 }
 
 .lose {
-    background-color: red;
+    background: #dc3545;
     color: white;
-    padding: 0px 2px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 40px;
+    text-align: center;
 }
 
+/* Simple Table Highlighting */
 td.highlight,
 tr.highlight {
-    background-color: yellow !important;
+    background: #fff3cd !important;
+}
+
+/* Clean Checkbox Styling */
+.checkbox-column {
+    width: 40px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.team-checkbox {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.team-checkbox:hover {
+    transform: scale(1.1);
+}
+
+/* Clean DataTable Styling */
+#example {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+#example thead th {
+    background: #495057;
+    color: white;
+    font-weight: 500;
+    padding: 12px 8px;
+    text-align: center;
+    border: none;
+    font-size: 13px;
+    position: relative;
+}
+
+/* Hide default DataTable sorting icons and replace with custom arrows */
+#example thead th.sorting:before,
+#example thead th.sorting_asc:before,
+#example thead th.sorting_desc:before {
+    display: none !important;
+}
+
+#example thead th.sorting:after,
+#example thead th.sorting_asc:after,
+#example thead th.sorting_desc:after {
+    opacity: 1 !important;
+    font-size: 14px !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    position: absolute !important;
+}
+
+#example thead th.sorting:after {
+    content: "↕" !important;
+    color: #cccccc !important;
+}
+
+#example thead th.sorting_asc:after {
+    content: "↑" !important;
+    color: #ffffff !important;
+}
+
+#example thead th.sorting_desc:after {
+    content: "↓" !important;
+    color: #ffffff !important;
+}
+
+/* Ensure header text doesn't overlap with arrows */
+#example thead th {
+    padding-right: 25px !important;
+}
+
+#example tbody tr {
+    border-bottom: 1px solid #dee2e6;
+}
+
+#example tbody tr:hover {
+    background: #f8f9fa;
+}
+
+#example tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+#example tbody tr:nth-child(even):hover {
+    background-color: #e9ecef;
+}
+
+#example tbody td {
+    padding: 8px;
+    vertical-align: middle;
+    border: none;
+    font-size: 13px;
+}
+
+/* Clickable elements styling */
+.clickme {
+    cursor: pointer;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.clickme:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Clean Input and Button Styling */
+textarea#thescores {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    background: white;
+    resize: vertical;
+    width: 100%;
+}
+
+textarea#thescores:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+input[type="button"] {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 400;
+    cursor: pointer;
+    margin: 2px;
+}
+
+input[type="button"]:hover {
+    background: #0056b3;
+}
+
+/* Links Styling */
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Error Message Styling */
+#error {
+    background: #dc3545;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 10px 0;
+    display: none;
+}
+
+#error:not(:empty) {
+    display: block;
+}
+
+/* Results Panel Styling */
+#results {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin-left: 20px;
+    min-height: 200px;
+}
+
+#results ol {
+    padding-left: 20px;
+}
+
+#results li {
+    margin-bottom: 2px;
+    padding: 4px 6px;
+    background: #f8f9fa;
+    border-radius: 3px;
+}
+
+#results li:hover {
+    background: #e9ecef;
+}
+
+/* Head-to-Head Comparison Panel Styling */
+.head-to-head-panel {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.head-to-head-panel h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+}
+
+.comparison-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.team-comparison {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.team-info {
+    flex: 1;
+    text-align: center;
+    padding: 5px;
+}
+
+.team-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.team-elo {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.win-probability {
+    font-size: 20px;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.vs-separator {
+    font-size: 18px;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 15px;
+}
+
+.elo-changes-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.elo-changes-table th,
+.elo-changes-table td {
+    padding: 8px 12px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.elo-changes-table th {
+    background: #495057;
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.elo-changes-table td {
+    font-size: 13px;
+}
+
+.elo-changes-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.elo-changes-table .team-column {
+    text-align: left;
+    font-weight: 500;
+}
+
+.elo-change-positive {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.elo-change-negative {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.elo-change-neutral {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Mermaid Graph Styling */
+#graph {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+/* Copy button styling */
+span[onclick="copyMermaid()"] {
+    background: #007bff;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 400;
+    display: inline-block;
+    margin: 5px;
+}
+
+span[onclick="copyMermaid()"]:hover {
+    background: #0056b3;
+}
+
+/* Toast Notification System */
+#toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    z-index: 1000;
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    center {
+        padding: 10px;
+        margin: 5px;
+    }
+    
+    .team-comparison {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .vs-separator {
+        margin: 5px 0;
+    }
+    
+    #results {
+        margin-left: 0;
+        margin-top: 15px;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .control-panel,
+    .page-header,
+    #graph {
+        display: none;
+    }
+    
+    #example {
+        border: 1px solid #ccc;
+    }
 }

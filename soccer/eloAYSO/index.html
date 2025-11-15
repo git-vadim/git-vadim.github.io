@@ -37,60 +37,161 @@
             cursor: pointer;
         }
 
-        /**/
+        /* Clean page styling */
+        .page-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+        
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        
+        .page-subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .control-panel h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .external-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .external-link:hover {
+            background: #218838;
+            color: white;
+        }
+
+        .layout-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .main-content {
+            flex: 1;
+        }
+
+        .sidebar-content {
+            flex: 0 0 350px;
+        }
+
+        @media (max-width: 1024px) {
+            .layout-container {
+                flex-direction: column;
+            }
+            
+            .sidebar-content {
+                flex: 1;
+            }
+        }
     </style>
 
 </head>
 
 <body>
     <center>
-        <table>
-            <tr>
-                <td valign="top">
-                    <table id="example" class="display" style="width:50%"></table>
-                </td>
-                <td valign="top">
-                    <div id="results" style="text-align: left"></div>
-                </td>
-            </tr>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">⚽ ELO Rating System</h1>
+            <p class="page-subtitle">Soccer Team Analytics & Head-to-Head Comparisons</p>
+        </div>
 
-            <tr>
-                <td>
-                    <table>
-                        <tr>
-                            <td>
-                                <textarea rows="4" cols="60" id="thescores" onchange="processScores()"
-                                    oninput="processScores()"></textarea>
-                            </td>
+        <!-- Main Layout Container -->
+        <div class="layout-container">
+            <!-- Main Content Area -->
+            <div class="main-content">
+                <!-- ELO Ratings Table -->
+                <table id="example" class="display" style="width:100%"></table>
+                
+                <!-- Head-to-Head Comparison Panel -->
+                <div id="headToHeadPanel" class="head-to-head-panel" style="display: none;">
+                    <h3>Head-to-Head Comparison</h3>
+                    <div id="comparisonData" class="comparison-content">
+                        <!-- Dynamic content populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
 
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="button" value="Clear Scores" onclick="clearScores()"></input>
-                                <input type="button" value="Load Scores" onclick="processScores()"></input>
-                            </td>
+            <!-- Sidebar Content -->
+            <div class="sidebar-content">
+                <div id="results" style="text-align: left"></div>
+            </div>
+        </div>
 
-                        </tr>
-                        <tr>
-                            <td>
-                                <a href="https://cgisports.com/ref/5555/stats/?user=public&ck=&search_records=Search&div_schedule=12UB"
-                                    target="_blank">12uB Scores ↗️</a>
-                            </td>
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h4>Score Input & Controls</h4>
+            
+            <div>
+                <textarea rows="4" cols="60" id="thescores" onchange="processScores()"
+                    oninput="processScores()" placeholder="Paste your game scores here (tab-separated format)..."></textarea>
+            </div>
 
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <div id="error" style="color: red;"></div>
-                </td>
-            </tr>
-        </table>
+            <div class="button-group">
+                <input type="button" value="Clear Scores" onclick="clearScores()">
+                <input type="button" value="Load Scores" onclick="processScores()">
+            </div>
+
+            <div style="text-align: center; margin-top: 10px;">
+                <a href="https://cgisports.com/ref/5555/stats/?user=public&ck=&search_records=Search&div_schedule=12UB"
+                   target="_blank" class="external-link">
+                   12uB Scores ↗
+                </a>
+            </div>
+
+            <div id="error"></div>
+        </div>
+
+        <!-- Graph Section -->
+        <div style="margin-top: 20px; text-align: center;">
+            <div style="margin-bottom: 10px;">
+                <span onclick="copyMermaid()" style="margin-right: 10px;">Copy Graph</span>
+                <a href="https://mermaid.live/" target="_blank" class="external-link">
+                    Mermaid Live Editor ↗
+                </a>
+            </div>
+            <pre id="graph" class="mermaid"></pre>
+        </div>
     </center>
 
-    <span onclick="copyMermaid()">COPY 📋</span> <a href="https://mermaid.live/" target="_blank>">Mermaid ↗️</a>
-    <pre id="graph" class="mermaid"></pre>
+    <!-- Toast Notification -->
+    <div id="toast"></div>
 </body>
 
 </html>
