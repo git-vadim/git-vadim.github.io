@@ -387,6 +387,35 @@ a:hover {
     margin: 15px 0;
 }
 
+/* Rendered Mermaid Graph Container */
+#renderedGraphContainer {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+#renderedGraph {
+    text-align: center;
+    overflow-x: auto;
+}
+
+#renderedGraph svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Error message styling for rendered graphs */
+#renderedGraph .error-message {
+    color: #dc3545;
+    padding: 10px;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    background: #f8d7da;
+    margin: 10px 0;
+}
+
 /* Copy button styling */
 span[onclick="copyMermaid()"] {
     background: #007bff;
@@ -436,6 +465,40 @@ span[onclick="copyMermaid()"]:hover {
         margin-left: 0;
         margin-top: 15px;
     }
+}
+
+/* Referee Points Row Highlighting */
+.ref-points-excellent {
+    background-color: #e3f2fd !important; /* Light blue - Current > 15 */
+}
+
+.ref-points-good {
+    background-color: #e8f5e8 !important; /* Light green - Season > 15 */
+}
+
+.ref-points-warning {
+    background-color: #fff9c4 !important; /* Light yellow - Season > 11 */
+}
+
+.ref-points-danger {
+    background-color: #ffebee !important; /* Light red - Season <= 11 */
+}
+
+/* Ensure text remains readable on highlighted backgrounds */
+.ref-points-excellent td,
+.ref-points-good td,
+.ref-points-warning td,
+.ref-points-danger td {
+    color: #333 !important;
+}
+
+/* Style the referee points columns to make them stand out */
+#example td:nth-last-child(2),
+#example td:nth-last-child(1),
+#example th:nth-last-child(2),
+#example th:nth-last-child(1) {
+    font-weight: 600;
+    border-left: 2px solid #dee2e6;
 }
 
 /* Print styles */
